@@ -53,6 +53,7 @@ def preprocess_image(image, low_sigma = 1, blur_sigma = 3):
                 to 5*standard_deviation of image values (preprocessing ensures intensities are 
                 gaussian centered at zero)
 
+    *Contour value basically defines the intensity along which the "contour" is defined                
 
     '''
 def locate_streaks(image, contour_value = None):
@@ -64,6 +65,6 @@ def locate_streaks(image, contour_value = None):
   
     contours =  skimage.measure.find_contours(processed_image, contour_value) 
 
-    return contours
+    return contours, processed_image
 
    

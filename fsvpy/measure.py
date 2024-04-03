@@ -10,6 +10,8 @@ from skimage.filters import difference_of_gaussians, window, gaussian
 import pims
 from scipy.optimize import curve_fit
 from scipy.special import erf
+from scipy.optimize import OptimizeWarning
+import warnings
 
 
 '''  
@@ -45,6 +47,8 @@ def parameters(contours, frame_num = 0):
             corner, width, height = contour_bounding_box(x,y)
             angle = contour_angle(x,y)
 
+            #put a condition to avoid width=0 streaks in property list
+            
             property_list.append([int(i),centroid[0],centroid[1],area, perimeter, corner[0], corner[1], 
                                   width, height, angle,  frame_num])
 
@@ -133,7 +137,7 @@ input: image, numpy array
 
 output: df appended with streak width & height
 '''
-def fit_shape(image, df, padding = 20, pixels_to_average = 2):
+def fit_shape(image, df, padding = 20*2, pixels_to_average = 2):
 
     streak_images = []
     widths = []
@@ -148,17 +152,21 @@ def fit_shape(image, df, padding = 20, pixels_to_average = 2):
         y0 = int(streak.corner_y - padding); y1 = int(streak.corner_y + streak.bbox_height + padding);
         streak_image = image[y0:y1, x0:x1]
 
+        try:
         #rotate iamge
-        rotated_streak =  ndimage.rotate(streak_image, streak.angle, reshape=False, mode = 'nearest')
+            rotated_streak =  ndimage.rotate(streak_image, streak.angle, reshape=False, mode = 'nearest')
 
-        #find centerline to determine width and height
-        xc = int(np.floor(rotated_streak.shape[1] / 2) + 1)
-        yc = int(np.floor(rotated_streak.shape[0] / 2) + 1)
+            #find centerline to determine width and height
+            xc = int(np.floor(rotated_streak.shape[1] / 2) + 1)
+            yc = int(np.floor(rotated_streak.shape[0] / 2) + 1)
 
-        #extract centerline of image for fitting
-        width_cut = np.mean(rotated_streak[yc-pixels_to_average : yc+pixels_to_average + 1, :], axis = 0)
-        height_cut = np.mean(rotated_streak[:, xc-pixels_to_average : xc+pixels_to_average + 1], axis = 1)      
+            #extract centerline of image for fitting
+            width_cut = np.mean(rotated_streak[yc-pixels_to_average : yc+pixels_to_average + 1, :], axis = 0)
+            height_cut = np.mean(rotated_streak[:, xc-pixels_to_average : xc+pixels_to_average + 1], axis = 1)      
 
+        except:
+            width_cut=0
+            height_cut=0
 
 
         #fit for streak width & height
@@ -171,8 +179,9 @@ def fit_shape(image, df, padding = 20, pixels_to_average = 2):
             h = fit_streak_height(height_cut)
         except:
             h = 0
-
+        
         #save fits params in array
+        
         widths.append(w); heights.append(h); slopes.append(m);
 
    #add columns to df in a way that respects indexing and avoids 'Set without copy' warning
@@ -189,8 +198,8 @@ def fit_shape(image, df, padding = 20, pixels_to_average = 2):
     #are more than 20% larger than bbox
     df3 = df2[df2.height != 0]
     df4 = df3[df3.width != 0]
-    df5 = df4[df4.width < 1.2*df4.bbox_width]
-    df6 = df5[df5.height < 1.2*df5.bbox_height]
+    df5 = df4[df4.width < 2.2*df4.bbox_width]
+    df6 = df5[df5.height < 2.2*df5.bbox_height]
 
     return df6
 
@@ -257,13 +266,22 @@ def fit_streak_width(centerline):
     a=0.01
     p0=[amp,w0,L,s,m,b,a]
 
-    pred_params, uncert_cov = curve_fit(erf_fit, xx, yy, p0=p0,method='lm')
-
+    # be careful of this try-except I added below !--
+    #catch optimize error warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", OptimizeWarning)
+        try:
+            pred_params, uncert_cov = curve_fit(erf_fit, xx, yy, p0=p0,method='lm')
+            #print('bad streak w: try block')
     # plt.figure()
     # plt.plot(xx,yy,marker='o',c='k',ls='None',ms=3)
     # plt.plot(xx,erf_fit(xx,*pred_params),lw=2,c='r')
 
-    w = pred_params[2]
+            w = 1* pred_params[2]
+
+        except OptimizeWarning:
+            
+            print('bad streak w: except block')
 
     return abs(w), pred_params[4]  #there is a degeneracy where sigma can be negative
 
@@ -283,14 +301,22 @@ def fit_streak_height(centerline):
 
         #initial guess
         p0=[1,10,(len(yy)-20),0.01,0.01]
+        
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", OptimizeWarning)
 
-        pred_params, uncert_cov = curve_fit(gauss, xx, yy, p0=p0,method='lm')
+            try:
+                pred_params, uncert_cov = curve_fit(gauss, xx, yy, p0=p0,method='lm')
+                #print('bad streak h: try block')
+        
+            # plt.figure()
+            # plt.plot(xx,yy,marker='o',c='k',ls='None',ms=3)
+            # plt.plot(xx,gauss(xx,*pred_params),lw=2,c='r')
 
-        # plt.figure()
-        # plt.plot(xx,yy,marker='o',c='k',ls='None',ms=3)
-        # plt.plot(xx,gauss(xx,*pred_params),lw=2,c='r')
+                h = 1*pred_params[2]
 
-        h = pred_params[2]
+            except OptimizeWarning:
+                print('bad streak h: except block')
 
         return abs(h)  #there is a degeneracy where sigma can be negative
 

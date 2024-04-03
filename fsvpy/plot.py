@@ -3,7 +3,7 @@ import matplotlib as mpl
 import pylab
 import pandas as pd
 import numpy as np
-
+import matplotlib.patches as patches
 
 
 ###################################################################################
@@ -76,12 +76,18 @@ def plot_fit(im, df):
         #plot width line
         lx, ly = rotate(cx - row.width/2, cy, cx, cy, theta)
         rx, ry = rotate(cx + row.width/2, cy, cx, cy, theta)
-        plt.plot([lx,rx],[ly,ry],c='r')
+        plt.plot([lx,rx],[ly,ry],c='b',linewidth=0.5)
         #plot height line
-        lx, ly = rotate(cx, cy - row.height, cx, cy, theta)
-        rx, ry = rotate(cx, cy + row.height, cx, cy, theta)
-        plt.plot([lx,rx],[ly,ry],c='r')
+        lx, ly = rotate(cx, cy - row.height/2, cx, cy, theta)
+        rx, ry = rotate(cx, cy + row.height/2, cx, cy, theta)
+        plt.plot([lx,rx],[ly,ry],c='b',linewidth=0.5)
         ax.text(row.x, row.y, str(int(row.streak_id)), fontsize = 12,c='y')
+        #plot bbox using detected contour
+        rect = patches.Rectangle((row.corner_x,row.corner_y-row.bbox_height/2), row.bbox_width, row.bbox_height,linewidth=1, edgecolor='r', facecolor='none')
+        ax.add_patch(rect)
+        #plot bbox with padding (I think is used for fitting purposes)
+
+
 
     plt.show()
 
@@ -126,6 +132,18 @@ def plot_centerlines(cl, image, show_point_order = False, color = 'r', cmap = 'r
     plt.show()
 
 
+#Good for debugging
+####################
+
+def plot_contours(image,contours):
+
+    fig, ax = plt.subplots()
+    ax.imshow(image, cmap = 'Greys_r')
+
+    for contour in contours:
+        ax.plot(contour[:,1], contour[:,0], linewidth=0.5)
+
+    plt.show()    
 
 
 
