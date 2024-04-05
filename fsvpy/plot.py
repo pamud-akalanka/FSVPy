@@ -47,7 +47,7 @@ def plot_filtered_streaks(contours, df, im):
     for ind in df.streak_id.unique():
 
         contour = contours[int(ind)]
-        ax.plot(contour[:,1], contour[:,0], linewidth=2, )
+        ax.plot(contour[:,1], contour[:,0], linewidth=1 )
         ax.text(contour[0][1], contour[0][0], str(int(ind)), fontsize = 12, c = 'y')
         
     plt.show()

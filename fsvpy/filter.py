@@ -28,7 +28,7 @@ import numpy as np
 def filter(streaks, min_height = 7, min_aspect = 2, remove_edges = True, edge_filter = 100, image_size = (2048, 2048)):
     height_filter = streaks[streaks.bbox_height > min_height]
     #width_filter = height_filter[]
-    aspect_filter = height_filter[(height_filter.bbox_width / height_filter.bbox_height) > 2]
+    aspect_filter = height_filter[(height_filter.bbox_width / height_filter.bbox_height) > min_aspect]
     
     if remove_edges:
         high_x = aspect_filter[aspect_filter.x > edge_filter]

@@ -41,17 +41,22 @@ def parameters(contours, frame_num = 0):
 
         #check that contour is closed, e.g. it does not interect the image edge, if closed then measure
         if contour[0][0] != contour[-1][0] or contour[0][1] != contour[-1][1]: 
-            pass
+            print(' Detected an open contour')
+            continue #skip loop if contour is open
         else:
             centroid, area, perimeter = contour_shape_specs(x,y)
             corner, width, height = contour_bounding_box(x,y)
             angle = contour_angle(x,y)
-
-            #put a condition to avoid width=0 streaks in property list
-            
+         
             property_list.append([int(i),centroid[0],centroid[1],area, perimeter, corner[0], corner[1], 
-                                  width, height, angle,  frame_num])
+                                    width, height, angle,  frame_num])
 
+
+    if not property_list :
+        property_list.append(np.zeros(11))# 11 is the number of columns in the data frame, if no streaks are detected a null array is passes to pandas causing trouble.
+        
+
+    
     properties = pd.DataFrame(data = np.array(property_list), columns = ['streak_id','x','y','area',
                                                                          'perimeter','corner_x', 'corner_y',
                                                                          'bbox_width', 'bbox_height', 'angle','frame'])
@@ -106,11 +111,20 @@ def contour_angle(x,y):
         # Fitting a straight line to each edge.
         p0 = [0., 0.]
 
-        p1, s = curve_fit(line, x, y, p0)
+        #catch optimize error warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", OptimizeWarning)
+            try:
+                p1, s = curve_fit(line, x, y, p0)
+                angle = np.arctan(p1[0]) * 180 / np.pi
+                return angle
+            except:                
+                print('Entered except block- measure.py_line 116')
+                return 0
 
-        angle = np.arctan(p1[0]) * 180 / np.pi
+        
 
-        return angle
+        
 
 
 
@@ -153,7 +167,7 @@ def fit_shape(image, df, padding = 20*2, pixels_to_average = 2):
         streak_image = image[y0:y1, x0:x1]
 
         try:
-        #rotate iamge
+            #rotate iamge
             rotated_streak =  ndimage.rotate(streak_image, streak.angle, reshape=False, mode = 'nearest')
 
             #find centerline to determine width and height
@@ -162,23 +176,25 @@ def fit_shape(image, df, padding = 20*2, pixels_to_average = 2):
 
             #extract centerline of image for fitting
             width_cut = np.mean(rotated_streak[yc-pixels_to_average : yc+pixels_to_average + 1, :], axis = 0)
-            height_cut = np.mean(rotated_streak[:, xc-pixels_to_average : xc+pixels_to_average + 1], axis = 1)      
-
+            height_cut = np.mean(rotated_streak[:, xc-pixels_to_average : xc+pixels_to_average + 1], axis = 1)
         except:
+            print(' except block measure.py- line 174')
             width_cut=0
-            height_cut=0
-
+            height_cut=0      
 
         #fit for streak width & height
         try:
             w, m = fit_streak_width(width_cut)
-        except:
+        except: # handling the error of a failed fitting for width
             w = 0
             m = 0
+            print('Entered except block (bad fit) - measure.py_line 178')
+
         try:
             h = fit_streak_height(height_cut)
-        except:
+        except: # handling the error of a failed fitting for height
             h = 0
+            print('Entered except block (bad fit)- measure.py_line 183')
         
         #save fits params in array
         
@@ -195,7 +211,7 @@ def fit_shape(image, df, padding = 20*2, pixels_to_average = 2):
     df2['slope'] = slopes_series
 
     #do a course filter to remove bad streaks, i.e ones where fit didn't converge or ones which
-    #are more than 20% larger than bbox
+    #are more than 220% larger than bbox
     df3 = df2[df2.height != 0]
     df4 = df3[df3.width != 0]
     df5 = df4[df4.width < 2.2*df4.bbox_width]
@@ -280,8 +296,9 @@ def fit_streak_width(centerline):
             w = 1* pred_params[2]
 
         except OptimizeWarning:
-            
-            print('bad streak w: except block')
+            w=0
+            pred_params[4]=0
+            print('Optimization warning- measure.py_line 284')
 
     return abs(w), pred_params[4]  #there is a degeneracy where sigma can be negative
 
@@ -316,7 +333,8 @@ def fit_streak_height(centerline):
                 h = 1*pred_params[2]
 
             except OptimizeWarning:
-                print('bad streak h: except block')
+                h=0
+                print('Optimization warning- measure.py_line 319')
 
         return abs(h)  #there is a degeneracy where sigma can be negative
 
