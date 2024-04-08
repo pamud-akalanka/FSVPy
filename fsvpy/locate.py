@@ -30,9 +30,9 @@ processed_image: numpy array
 
 def preprocess_image(image, low_sigma = 1, blur_sigma = 3):
 
-    image_result = difference_of_gaussians(image, low_sigma = low_sigma)  #bandpass filter
+    #image_result = difference_of_gaussians(image, low_sigma = low_sigma)  #bandpass filter
 
-    image_result = gaussian(image_result, sigma = blur_sigma)  #blur to aid contour finding
+    image_result = gaussian(image, sigma = blur_sigma)  #blur to aid contour finding
     
     return image_result
 

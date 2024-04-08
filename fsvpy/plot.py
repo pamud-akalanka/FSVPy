@@ -66,7 +66,7 @@ output: None, displays image
 ###################################################################################
 
 def plot_fit(im, df):
-
+    padding = 40 # this should match with value in measure.py function fit shape
     fig, ax = plt.subplots()
     ax.imshow(im, cmap = 'Greys_r')
     
@@ -81,12 +81,13 @@ def plot_fit(im, df):
         lx, ly = rotate(cx, cy - row.height/2, cx, cy, theta)
         rx, ry = rotate(cx, cy + row.height/2, cx, cy, theta)
         plt.plot([lx,rx],[ly,ry],c='b',linewidth=0.5)
-        ax.text(row.x, row.y, str(int(row.streak_id)), fontsize = 12,c='y')
+        ax.text(row.x, row.y, str(int(row.streak_id)) + '  w = ' + str(float(np.round(row.width,2)))+ ' h = '+ str(float(np.round(row.height,2))), fontsize = 8,c='y')
         #plot bbox using detected contour
-        rect = patches.Rectangle((row.corner_x,row.corner_y-row.bbox_height/2), row.bbox_width, row.bbox_height,linewidth=1, edgecolor='r', facecolor='none')
+        rect = patches.Rectangle((row.corner_x,row.corner_y), row.bbox_width, row.bbox_height,linewidth=1, edgecolor='r', facecolor='none')
         ax.add_patch(rect)
         #plot bbox with padding (I think is used for fitting purposes)
-
+        rect = patches.Rectangle((row.corner_x- 2*padding,row.corner_y- padding), row.bbox_width + 4*padding, row.bbox_height + 2*padding,linewidth=1, edgecolor='y', facecolor='none')
+        ax.add_patch(rect)
 
 
     plt.show()

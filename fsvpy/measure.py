@@ -185,6 +185,9 @@ def fit_shape(image, df, padding = 20*2, pixels_to_average = 2):
         #fit for streak width & height
         try:
             w, m = fit_streak_width(width_cut)
+
+            if w and m is None:
+                raise Exception('fit returned empty: line 190 measure.py')
         except: # handling the error of a failed fitting for width
             w = 0
             m = 0
@@ -192,6 +195,9 @@ def fit_shape(image, df, padding = 20*2, pixels_to_average = 2):
 
         try:
             h = fit_streak_height(height_cut)
+
+            if w and m is None:
+                raise Exception('fit returned empty: line 200 measure.py')
         except: # handling the error of a failed fitting for height
             h = 0
             print('Entered except block (bad fit)- measure.py_line 183')
@@ -201,7 +207,7 @@ def fit_shape(image, df, padding = 20*2, pixels_to_average = 2):
         widths.append(w); heights.append(h); slopes.append(m);
 
    #add columns to df in a way that respects indexing and avoids 'Set without copy' warning
-    width_series = pd.Series(widths); height_series = pd.Series(heights); slopes_series = pd.Series(slopes);
+    width_series = pd.Series(widths,dtype='float64'); height_series = pd.Series(heights,dtype='float64'); slopes_series = pd.Series(slopes,dtype='float64');
     width_series.index = df.index; height_series.index = df.index; slopes_series.index = df.index
 
     df2 = df.copy()
@@ -213,9 +219,9 @@ def fit_shape(image, df, padding = 20*2, pixels_to_average = 2):
     #do a course filter to remove bad streaks, i.e ones where fit didn't converge or ones which
     #are more than 220% larger than bbox
     df3 = df2[df2.height != 0]
-    df4 = df3[df3.width != 0]
-    df5 = df4[df4.width < 2.2*df4.bbox_width]
-    df6 = df5[df5.height < 2.2*df5.bbox_height]
+    df4 = df3[df3.width != 0 ]
+    df5 = df4[df4.width < 1.2*df4.bbox_width]
+    df6 = df5[df5.height < 1.2*df5.bbox_height]
 
     return df6
 
@@ -289,16 +295,16 @@ def fit_streak_width(centerline):
         try:
             pred_params, uncert_cov = curve_fit(erf_fit, xx, yy, p0=p0,method='lm')
             #print('bad streak w: try block')
-    # plt.figure()
-    # plt.plot(xx,yy,marker='o',c='k',ls='None',ms=3)
-    # plt.plot(xx,erf_fit(xx,*pred_params),lw=2,c='r')
+            # plt.figure()
+            # plt.plot(xx,yy,marker='o',c='k',ls='None',ms=3)
+            # plt.plot(xx,erf_fit(xx,*pred_params),lw=2,c='r')
 
             w = 1* pred_params[2]
 
         except OptimizeWarning:
             w=0
             pred_params[4]=0
-            print('Optimization warning- measure.py_line 284')
+            print('Rejected streak -- Optimization warning- measure.py_line 284')
 
     return abs(w), pred_params[4]  #there is a degeneracy where sigma can be negative
 
@@ -318,6 +324,9 @@ def fit_streak_height(centerline):
 
         #initial guess
         p0=[1,10,(len(yy)-20),0.01,0.01]
+
+        #amp,w0,L,s,m,a,b
+
         
         with warnings.catch_warnings():
             warnings.simplefilter("error", OptimizeWarning)
@@ -334,7 +343,7 @@ def fit_streak_height(centerline):
 
             except OptimizeWarning:
                 h=0
-                print('Optimization warning- measure.py_line 319')
+                print('Rejected streak -- Optimization warning- measure.py_line 319')
 
         return abs(h)  #there is a degeneracy where sigma can be negative
 
