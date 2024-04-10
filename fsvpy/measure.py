@@ -151,7 +151,7 @@ input: image, numpy array
 
 output: df appended with streak width & height
 '''
-def fit_shape(image, df, padding = 20*2, pixels_to_average = 2):
+def fit_shape(image, df, diameter, Resolution, padding = 20*2, pixels_to_average = 2):
 
     streak_images = []
     widths = []
@@ -196,7 +196,10 @@ def fit_shape(image, df, padding = 20*2, pixels_to_average = 2):
         try:
             h = fit_streak_height(height_cut)
 
-            if w and m is None:
+            if((h*Resolution/1000) > 1.1 * diameter): #if the fit gives a height greater than 1.5 times the real particle diameter,
+                h = streak.bbox_height          # then give the height as the bbox height from contour!
+
+            if h is None:
                 raise Exception('fit returned empty: line 200 measure.py')
         except: # handling the error of a failed fitting for height
             h = 0
