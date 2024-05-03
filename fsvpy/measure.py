@@ -196,8 +196,8 @@ def fit_shape(image, df, diameter, Resolution, padding = 20*2, pixels_to_average
         try:
             h = fit_streak_height(height_cut)
 
-            if((h*Resolution/1000) > 1.1 * diameter): #if the fit gives a height greater than 1.5 times the real particle diameter,
-                h = streak.bbox_height          # then give the height as the bbox height from contour!
+            #if((h*Resolution/1000) > 1.1 * diameter): #if the fit gives a height greater than 1.5 times the real particle diameter,
+            #    h = streak.bbox_height          # then give the height as the bbox height from contour!
 
             if h is None:
                 raise Exception('fit returned empty: line 200 measure.py')

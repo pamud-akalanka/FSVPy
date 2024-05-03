@@ -18,6 +18,7 @@ from scipy.optimize import curve_fit
 from scipy import interpolate
 from skimage.draw import disk
 import math
+#import cv2
 
 
 def do_blur(frame, blur = 5):
@@ -71,7 +72,7 @@ def propt_contour(x,y):
 
 
 #fit a gaussian and filter the radius
-def find_radius(frame, center):
+def find_radius(frame, center):  #this is basically thresholding
     
     radial_dist = radial_profile(frame, center)
     
@@ -237,6 +238,9 @@ def line(x,m,b):
 def hyperbolic(x,a,b):
     return (b + a * np.multiply(x,x))
    
+
+
+# This function is for determining radius from a streak; it now only has a line profile 1D    
 def radius_usingprofile(radial_dist, centerx):
     
     x = np.indices(radial_dist.shape)
@@ -276,6 +280,8 @@ def radius_usingprofile(radial_dist, centerx):
     return radius,radial_dist, sigma, mean
 
 
+
+# This function is for determining radius from a stack; it has 2D information  
 def radius_usingprofile2D(frame, center):
     
     radial_dist = radial_profile(frame, center)
@@ -308,7 +314,39 @@ def gauss(x,A,mean,sigma):
     return A* np.exp(np.divide(-(np.square((x-mean))),(2*(sigma**2))))
 
 
-def fit_gauss(x, y, mean, sigma):
+
+
+
+#Morphology cv filtering
+
+def morphimage(img,showplot):
+    #stretch the dynamic range
+    stretch = skimage.exposure.rescale_intensity(img, in_range='image',out_range=(0,255))
     
 
-    return
+    #morph
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (100,100))
+    morph = cv2.morphologyEx(stretch,cv2.MORPH_CLOSE, kernel)
+    kernel = cv2.getStructuringElement( cv2.MORPH_ELLIPSE, (200,200))
+    morph = cv2.morphologyEx(morph, cv2.MORPH_OPEN, kernel)
+
+    #grayscale
+    grey = morph.astype("uint8")
+
+    #threshold
+    thresh = cv2.threshold(grey, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)[1]
+
+    #largest contour
+    contours = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    contours = contours[0] if len(contours) == 2 else contours[1]
+    bigcontour = max(contours, key = cv2.contourArea)
+
+    #draw on black background
+    contour = np.zeros((stretch.shape[:2]),dtype=np.uint8)
+    result = np.zeros_like(stretch)
+    cv2.drawContours(contour, [bigcontour], 0, 255,-1)
+    result[contour>0] = stretch[contour>0]
+    if showplot==True:
+        plt.imshow(result)
+      
+    return result, thresh
