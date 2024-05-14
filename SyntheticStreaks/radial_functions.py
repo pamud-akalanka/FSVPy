@@ -18,7 +18,46 @@ from scipy.optimize import curve_fit
 from scipy import interpolate
 from skimage.draw import disk
 import math
+from scipy.stats import multivariate_normal
 #import cv2
+
+class gaussian_streak:
+
+    def __init__(self,amplitude,mean,spread):
+        self.mean = mean
+        self.sigma = spread
+        self.A = amplitude
+        
+    def mesh(self):
+        x = np.linspace( self.mean[0]-8*self.sigma[0], self.mean[0]+8*self.sigma[0], num=1000)
+        y = np.linspace(self.mean[1]-8*self.sigma[1], self.mean[1]+8*self.sigma[1], num=1000)
+        X, Y = np.meshgrid(x,y)
+
+        return X, Y
+
+        
+    def static_gauss(self):
+
+        COV = [ [self.sigma[0]**2, 0], [0, self.sigma[1]**2] ] # currently un-correlated variables
+
+        X , Y = self.mesh() 
+        x_ = X.flatten()
+        y_ = Y.flatten()
+        xy = np.vstack((x_, y_)).T
+        
+        normal_rv = multivariate_normal(self.mean, COV)
+        z = normal_rv.pdf(xy)
+        z = z.reshape(1000, 1000, order='F')
+
+
+        fig, ax = plt.subplots(figsize=(5,5))
+        plt.title('Gaussian blob')
+        plt.contourf(X, Y, z.T,100)
+       # plt.hist2d( z.T)
+        plt.show()
+
+        return X, Y, z.T
+
 
 
 def do_blur(frame, blur = 5):
@@ -350,3 +389,6 @@ def morphimage(img,showplot):
         plt.imshow(result)
       
     return result, thresh
+
+
+
