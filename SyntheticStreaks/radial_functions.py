@@ -57,16 +57,55 @@ class gaussian_blob:
        # plt.hist2d( z.T)
         plt.show()
 
+        self.static = Normed_z
+
         return X, Y, Normed_z
+    
+    def partialY(self):
+        #basically integrate Z distribution in X
+        partial_inY = np.sum(self.static, 1)
+        fig, ax = plt.subplots(figsize=(5,5))
+        plt.title('Partial distribution in Y')
+        plt.plot(np.linspace(0, len(partial_inY),len(partial_inY)), partial_inY, 'r-')
+       # plt.hist2d( z.T)
+        plt.show()
+
+        return partial_inY
+
 
 class streak(gaussian_blob):
 
-    def __init__(self,amplitude,mean,spread,velocity,exposure):
+    def __init__(self,amplitude,mean,spread,velocity,exposure,sampling):
         super().__init__(amplitude,mean,spread)
         self.exposure = exposure
         self.velocity = velocity
+        self.sd = sampling
     
+    def convolve_gauss(self, Normed_z):
 
+        self.static = Normed_z
+
+        Grid = np.zeros((200,900)) #initialize grid
+        pathy = int(Grid.shape[0]/2)
+        path_length  = int(0.75 * Grid.shape[1])
+
+
+        for i in range(int(path_length/self.sd)):  Grid[(pathy-(50)):(pathy +(100-50)),(800-50-int((i)* self.sd)):(800-50+100-int((i)*self.sd))] += self.static
+
+        #Normalize
+        Grid = Grid/np.sum(Grid)
+
+        fig, ax = plt.subplots(2,figsize=(15,10))
+        ax[0].imshow(Grid, interpolation='sinc', cmap='viridis')
+        plt.title('Gaussian Convolution')
+
+        Y_distribution = Grid[50:150,450]
+
+        #fig, ax = plt.subplots(2,figsize=(15,10))
+        ax[1].plot( np.linspace(0,100,100),Y_distribution)
+        plt.title('Distribution in Y direction')
+
+        return Grid, Y_distribution
 
 
 
