@@ -21,7 +21,7 @@ import math
 from scipy.stats import multivariate_normal
 #import cv2
 
-class gaussian_streak:
+class gaussian_blob:
 
     def __init__(self,amplitude,mean,spread):
         self.mean = mean
@@ -29,8 +29,8 @@ class gaussian_streak:
         self.A = amplitude
         
     def mesh(self):
-        x = np.linspace( self.mean[0]-8*self.sigma[0], self.mean[0]+8*self.sigma[0], num=1000)
-        y = np.linspace(self.mean[1]-8*self.sigma[1], self.mean[1]+8*self.sigma[1], num=1000)
+        x = np.linspace( self.mean[0]-8*self.sigma[0], self.mean[0]+8*self.sigma[0], num=100)
+        y = np.linspace(self.mean[1]-8*self.sigma[1], self.mean[1]+8*self.sigma[1], num=100)
         X, Y = np.meshgrid(x,y)
 
         return X, Y
@@ -47,18 +47,39 @@ class gaussian_streak:
         
         normal_rv = multivariate_normal(self.mean, COV)
         z = normal_rv.pdf(xy)
-        z = z.reshape(1000, 1000, order='F')
-
+        z = z.reshape(100, 100, order='F')
+        z = z.T
+        Normed_z = [i/np.sum(z) for i in z]
 
         fig, ax = plt.subplots(figsize=(5,5))
         plt.title('Gaussian blob')
-        plt.contourf(X, Y, z.T,100)
+        plt.contourf(X, Y, Normed_z,100)
        # plt.hist2d( z.T)
         plt.show()
 
-        return X, Y, z.T
+        return X, Y, Normed_z
+
+class streak(gaussian_blob):
+
+    def __init__(self,amplitude,mean,spread,velocity,exposure):
+        super().__init__(amplitude,mean,spread)
+        self.exposure = exposure
+        self.velocity = velocity
+    
 
 
+
+
+
+
+
+
+
+
+
+
+
+# functions
 
 def do_blur(frame, blur = 5):
     
