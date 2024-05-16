@@ -19,6 +19,7 @@ from scipy import interpolate
 from skimage.draw import disk
 import math
 from scipy.stats import multivariate_normal
+from scipy.stats import moment
 #import cv2
 
 class gaussian_blob:
@@ -64,13 +65,20 @@ class gaussian_blob:
     def partialY(self):
         #basically integrate Z distribution in X
         partial_inY = np.sum(self.static, 1)
-        fig, ax = plt.subplots(figsize=(5,5))
+        fig, ax = plt.subplots(figsize=(10,5))
         plt.title('Partial distribution in Y')
         plt.plot(np.linspace(0, len(partial_inY),len(partial_inY)), partial_inY, 'r-')
        # plt.hist2d( z.T)
         plt.show()
 
         return partial_inY
+    
+    def do_moments(self,distribution):
+        order = moment(distribution,[0,1,2,3,4,5])
+        print('The moments about this distribution are', order)
+
+        return order
+
 
 
 class streak(gaussian_blob):
@@ -95,11 +103,11 @@ class streak(gaussian_blob):
         #Normalize
         Grid = Grid/np.sum(Grid)
 
-        fig, ax = plt.subplots(2,figsize=(15,10))
+        fig, ax = plt.subplots(2,figsize=(10,10))
         ax[0].imshow(Grid, interpolation='sinc', cmap='viridis')
         plt.title('Gaussian Convolution')
 
-        Y_distribution = Grid[50:150,450]
+        Y_distribution = Grid[50:150,450]* path_length #need to account for the path length
 
         #fig, ax = plt.subplots(2,figsize=(15,10))
         ax[1].plot( np.linspace(0,100,100),Y_distribution)
