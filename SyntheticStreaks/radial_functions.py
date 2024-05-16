@@ -24,14 +24,15 @@ from scipy.stats import moment
 
 class gaussian_blob:
 
-    def __init__(self,amplitude,mean,spread):
+    def __init__(self,amplitude,mean,spread,num):
         self.mean = mean
         self.sigma = spread
         self.A = amplitude
+        self.num =num
         
     def mesh(self):
-        x = np.linspace( self.mean[0]-8*self.sigma[0], self.mean[0]+8*self.sigma[0], num=100)
-        y = np.linspace(self.mean[1]-8*self.sigma[1], self.mean[1]+8*self.sigma[1], num=100)
+        x = np.linspace( self.mean[0]-8*self.sigma[0], self.mean[0]+8*self.sigma[0], num=self.num)
+        y = np.linspace(self.mean[1]-8*self.sigma[1], self.mean[1]+8*self.sigma[1], num=self.num)
         X, Y = np.meshgrid(x,y)
 
         return X, Y
@@ -46,59 +47,94 @@ class gaussian_blob:
         y_ = Y.flatten()
         xy = np.vstack((x_, y_)).T
         
+        #gaussian build
         normal_rv = multivariate_normal(self.mean, COV)
         z = normal_rv.pdf(xy)
-        z = z.reshape(100, 100, order='F')
+        z = z.reshape(self.num, self.num, order='F')
         z = z.T
+
+         #
+        #replace 'z'  gaussian by circle thresholded
+        t = np.zeros((self.num,self.num))
+        radius = 3
+        for i in range(self.num):
+            for j in range (self.num):
+                if (X[i,j]**2 + Y[i,j]**2 <= radius**2):
+                    t[i,j] = 1
+                else:
+                    t[i,j] = 0
+                    
+        #
+        z = t
         Normed_z = [i/np.sum(z) for i in z]
+        #extract the univariate Normal 
+        uni_Normed_z = np.array(Normed_z)[:,int((self.num)/2)] #from the middle
+        uni_Normed_z = uni_Normed_z/np.sum(uni_Normed_z) #again normalize
 
         fig, ax = plt.subplots(figsize=(5,5))
         plt.title('Gaussian blob')
         plt.contourf(X, Y, Normed_z,100)
-       # plt.hist2d( z.T)
+        # plt.hist2d( z.T)
+        plt.figure()
+        plt.plot(np.linspace(0,len(uni_Normed_z)-1,len(uni_Normed_z)), uni_Normed_z)
         plt.show()
 
         self.static = Normed_z
 
-        return X, Y, Normed_z
+
+        return X, Y, Normed_z, uni_Normed_z
     
     def partialY(self):
         #basically integrate Z distribution in X
-        partial_inY = np.sum(self.static, 1)
+        partial_inY = np.sum(np.array(self.static), 1)
         fig, ax = plt.subplots(figsize=(10,5))
         plt.title('Partial distribution in Y')
-        plt.plot(np.linspace(0, len(partial_inY),len(partial_inY)), partial_inY, 'r-')
+        plt.plot(np.linspace(0, len(partial_inY)-1,len(partial_inY)), partial_inY, 'r-')
        # plt.hist2d( z.T)
+        plt.xlabel('pixels')
+        plt.ylabel('Probability Density')
         plt.show()
 
         return partial_inY
     
-    def do_moments(self,distribution):
-        order = moment(distribution,[0,1,2,3,4,5])
+    def do_moments(self,distribution, order):
+        ''' order = moment(distribution,[0,1,2,3,4,5])
         print('The moments about this distribution are', order)
+        '''
+        c = 0
+        moments = [] 
+        central = 499.4999999
+        for j,pw in enumerate(order):
+            c=0
+            for i,x in enumerate(distribution):
+                 c = c + x* ((i - central) **pw)
+            #c = c/100
+            print('moment of order',j, ':', c)
+            moments.append(c)
 
-        return order
+        return 
 
 
 
 class streak(gaussian_blob):
 
-    def __init__(self,amplitude,mean,spread,velocity,exposure,sampling):
-        super().__init__(amplitude,mean,spread)
+    def __init__(self,amplitude,mean,spread,num,velocity,exposure,sampling):
+        super().__init__(amplitude,mean,spread,num)
         self.exposure = exposure
         self.velocity = velocity
         self.sd = sampling
+        self.num = num
     
     def convolve_gauss(self, Normed_z):
 
         self.static = Normed_z
 
-        Grid = np.zeros((200,900)) #initialize grid
+        Grid = np.zeros((self.num*2,self.num*9)) #initialize grid
         pathy = int(Grid.shape[0]/2)
         path_length  = int(0.75 * Grid.shape[1])
 
 
-        for i in range(int(path_length/self.sd)):  Grid[(pathy-(50)):(pathy +(100-50)),(800-50-int((i)* self.sd)):(800-50+100-int((i)*self.sd))] += self.static
+        for i in range(int(path_length/self.sd)):  Grid[(pathy-(int(self.num/2))):(pathy +((int(self.num))-(int(self.num/2)))),( Grid.shape[1]-self.num-(int(self.num/2))-int((i)* self.sd)):(Grid.shape[1]-self.num-(int(self.num/2)) +int(self.num)-int((i)*self.sd))] += self.static
 
         #Normalize
         Grid = Grid/np.sum(Grid)
@@ -107,11 +143,13 @@ class streak(gaussian_blob):
         ax[0].imshow(Grid, interpolation='sinc', cmap='viridis')
         plt.title('Gaussian Convolution')
 
-        Y_distribution = Grid[50:150,450]* path_length #need to account for the path length
+        Y_distribution = Grid[(int(self.num/2)):3*(int(self.num/2)),int(Grid.shape[1]/2)]* path_length #need to account for the path length
 
         #fig, ax = plt.subplots(2,figsize=(15,10))
-        ax[1].plot( np.linspace(0,100,100),Y_distribution)
+        ax[1].plot( np.linspace(0,len(Y_distribution)-1,len(Y_distribution)),Y_distribution)
         plt.title('Distribution in Y direction')
+        plt.xlabel('pixels')
+        plt.ylabel('Probability Density')
 
         return Grid, Y_distribution
 
