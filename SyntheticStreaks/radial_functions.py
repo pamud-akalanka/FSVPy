@@ -72,7 +72,7 @@ class gaussian_blob:
         uni_Normed_z = uni_Normed_z/np.sum(uni_Normed_z) #again normalize
 
         fig, ax = plt.subplots(figsize=(5,5))
-        plt.title('Gaussian blob')
+        plt.title('Thresholded blob')
         plt.contourf(X, Y, Normed_z,100)
         # plt.hist2d( z.T)
         plt.figure()
@@ -137,13 +137,13 @@ class streak(gaussian_blob):
         for i in range(int(path_length/self.sd)):  Grid[(pathy-(int(self.num/2))):(pathy +((int(self.num))-(int(self.num/2)))),( Grid.shape[1]-self.num-(int(self.num/2))-int((i)* self.sd)):(Grid.shape[1]-self.num-(int(self.num/2)) +int(self.num)-int((i)*self.sd))] += self.static
 
         #Normalize
-        Grid = Grid/np.sum(Grid)
+        Grid = Grid#/np.sum(Grid)
 
         fig, ax = plt.subplots(2,figsize=(10,10))
         ax[0].imshow(Grid, interpolation='sinc', cmap='viridis')
         plt.title('Gaussian Convolution')
 
-        Y_distribution = Grid[(int(self.num/2)):3*(int(self.num/2)),int(Grid.shape[1]/2)]* path_length #need to account for the path length
+        Y_distribution = Grid[(int(self.num/2)):3*(int(self.num/2)),int(Grid.shape[1]/2)]#* path_length #need to account for the path length
 
         #fig, ax = plt.subplots(2,figsize=(15,10))
         ax[1].plot( np.linspace(0,len(Y_distribution)-1,len(Y_distribution)),Y_distribution)
