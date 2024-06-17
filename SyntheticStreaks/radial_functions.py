@@ -154,10 +154,55 @@ class streak(gaussian_blob):
         return Grid, Y_distribution
 
 
+# This is to calculate the partial distriution in Y for a set of experimentally measured Z-stack
+class pointblur:
 
+    def __init__(self, stack):
+        self.stack = stack 
 
+    def partialY(self, plot = False):
+        #basically integrate in X
+        collect = []
+        for i,frame in enumerate(self.stack):
+            partial_inY = np.sum(np.array(frame), 1)
+            collect.append(partial_inY)
 
+        if plot == True:
+            fig, ax = plt.subplots(figsize=(10,5))
+            plt.title('Partial distribution in Y')
+            plt.plot(np.linspace(0, len(partial_inY)-1,len(partial_inY)), partial_inY, 'r-')
+            # plt.hist2d( z.T)
+            plt.xlabel('pixels')
+            plt.ylabel('Probability Density')
+            plt.show()
 
+        self.partialYstack = collect   
+
+    def fit_streak_height(self):
+        #fit for the streak height
+        collect = [] #reset
+        for i in range(self.partialYstack.shape[0]):
+            yy = self.partialYstack[i][:] #select all columns of ith row, aka the bump
+            xx = np.arange(0,len(yy))
+
+            #normalize 
+            yy=(yy-np.min(yy))/(np.max(yy)-np.min(yy))
+
+            #initial guess
+            p0=[1,10,(len(yy)-20),0.01,0.01]
+
+            #amp,w0,L,s,m,a,b
+            try:
+                pred_params, uncert_cov = curve_fit(gauss, xx, yy, p0=p0,method='lm')
+                h = 1*pred_params[2]
+                collect.append(h)
+
+            except:
+                h=0
+                print('Rejected')
+                collect.append(h)
+
+        self.diameter = collect    
 
 
 
@@ -379,6 +424,10 @@ def calculate_slope(frame, radius):
 
 def line(x,m,b):
     return m*x + b
+
+
+def quadratic(x,a,m,b):
+    return a*x*x + m*x + b
     
 def hyperbolic(x,a,b):
     return (b + a * np.multiply(x,x))
@@ -445,7 +494,7 @@ def radius_usingprofile2D(frame, center):
     A = param[0]
     mean = param[1]
     sigma = param[2]
-    radius = 2* sigma #cutoff radius at 2 sigma
+    radius = 1* sigma #cutoff radius at 2 sigma
  
     
     return radius, radial_dist, sigma, mean
