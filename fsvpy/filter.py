@@ -86,7 +86,7 @@ def filter_diag_size(contours, min_diag_size = 80):
 
 def plane_filter(df, diameter, Res, inplane=True):
 
-    error = 0.5 # in um
+    error = 1 # in um
 
     if inplane:
         df1 = df[df.height> ((diameter - error)/Res)*1000 ] # thresh in pixels

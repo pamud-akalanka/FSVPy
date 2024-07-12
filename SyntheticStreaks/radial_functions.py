@@ -494,7 +494,7 @@ def radius_usingprofile2D(frame, center):
     A = param[0]
     mean = param[1]
     sigma = param[2]
-    radius = 1* sigma #cutoff radius at 2 sigma
+    radius = 2* sigma #cutoff radius at 2 sigma
  
     
     return radius, radial_dist, sigma, mean
