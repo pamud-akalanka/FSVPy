@@ -276,18 +276,22 @@ def find_radius(frame, center):  #this is basically thresholding
     mean = sum(radial_dist*x)/sum(radial_dist) #weighted sum by intensity count
     sigma = sum(radial_dist*(x-mean)**2)/(sum(radial_dist)) #standard deviation of distribution
 
-    level = 0.2 #cutoff radius at 2 sigma
+    level = 0.1 #cutoff radius
 
     
-    try:
-        interp_radial_dist = interpolate.interp1d(np.arange(len(radial_dist)), radial_dist)
-    
-        newx = np.linspace(0,len(radial_dist)-1,5000)
-        resampled_radial_dist = interp_radial_dist(newx)
+    #try:
+    interp_radial_dist = interpolate.interp1d(np.arange(len(radial_dist)), radial_dist)
+
+    newx = np.linspace(0,len(radial_dist)-1,5000)
+    resampled_radial_dist = interp_radial_dist(newx)
+    if not((len(resampled_radial_dist)==0)):
         radius = newx[np.min(np.where(resampled_radial_dist<level))]
+    else:
+        radius=0
         
-    except:
-        radius_pos = 0
+    #except:
+    #    radius_pos = 0
+    #    print('im here')
     
     return radius
 
