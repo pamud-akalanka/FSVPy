@@ -12,7 +12,9 @@ from scipy.optimize import curve_fit
 from scipy.special import erf
 from scipy.optimize import OptimizeWarning
 import warnings
-
+import sys
+sys.path.append('./SyntheticStreaks/')
+import radial_functions as fun
 
 '''  
     Finds streak attributes
@@ -180,7 +182,7 @@ def fit_shape(image, df, diameter, Resolution, padding = 20*2, pixels_to_average
         except:
             print(' except block measure.py- line 174')
             width_cut=0
-            height_cut=0      
+            height_cut=[0]      
 
         #fit for streak width & height
         try:
@@ -193,17 +195,25 @@ def fit_shape(image, df, diameter, Resolution, padding = 20*2, pixels_to_average
             m = 0
             print('Entered except block (bad fit) - measure.py_line 178')
 
-        try:
-            h = fit_streak_height(height_cut)
+        #try:
+            #h = fit_streak_height(height_cut)
+        
+            # Think about thresholding here to match the thresholded calibration stack
+        if(height_cut[0] != 0):
+            h = fun.find_radius(height_cut,[xc,yc])
+            print('height',h)
+        else:
+            h=0
+            
 
             #if((h*Resolution/1000) > 1.1 * diameter): #if the fit gives a height greater than 1.5 times the real particle diameter,
             #    h = streak.bbox_height          # then give the height as the bbox height from contour!
 
-            if h is None:
-                raise Exception('fit returned empty: line 200 measure.py')
-        except: # handling the error of a failed fitting for height
-            h = 0
-            print('Entered except block (bad fit)- measure.py_line 183')
+        #if h==0:
+        #    raise Exception('fit returned zero: line 200 measure.py')
+        #except: # handling the error of a failed fitting for height
+        #    h = 0
+        #    print('Entered except block (bad fit)- measure.py_line 183')
         
         #save fits params in array
         

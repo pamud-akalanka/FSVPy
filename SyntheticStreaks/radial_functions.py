@@ -263,8 +263,10 @@ def propt_contour(x,y):
 
 #fit a gaussian and filter the radius
 def find_radius(frame, center):  #this is basically thresholding
-    
-    radial_dist = radial_profile(frame, center)
+    if np.array(frame).ndim>1:
+        radial_dist = radial_profile(frame, center)
+    else:
+        radial_dist = frame
     
     #normalizing step
     
@@ -276,7 +278,7 @@ def find_radius(frame, center):  #this is basically thresholding
     mean = sum(radial_dist*x)/sum(radial_dist) #weighted sum by intensity count
     sigma = sum(radial_dist*(x-mean)**2)/(sum(radial_dist)) #standard deviation of distribution
 
-    level = 0.1 #cutoff radius
+    level = 0.15 #cutoff radius
 
     
     #try:
@@ -284,6 +286,7 @@ def find_radius(frame, center):  #this is basically thresholding
 
     newx = np.linspace(0,len(radial_dist)-1,5000)
     resampled_radial_dist = interp_radial_dist(newx)
+    print(resampled_radial_dist)
     if not((len(resampled_radial_dist)==0)):
         radius = newx[np.min(np.where(resampled_radial_dist<level))]
     else:
